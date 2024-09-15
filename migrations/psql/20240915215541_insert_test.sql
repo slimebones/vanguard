@@ -14,4 +14,4 @@ VALUES
     ('smalltown', '$2a$14$on9lMaLI1vHrnHhU.bf8aOOe9Bq1cIjNWTcjUJbbXTHjeDQt5ZU7K', 'Smalltown');
 
 -- migrate:down
-
+DELETE FROM appuser WHERE username LIKE 'test_%' OR username IN ('pak', 'smith', 'bow', 'gannick', 'smalltown')
