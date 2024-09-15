@@ -98,4 +98,5 @@ ALTER TABLE ONLY public.schema_migrations
 --
 
 INSERT INTO public.schema_migrations (version) VALUES
-    ('20240915114608');
+    ('20240915114608'),
+    ('20240915215541');
