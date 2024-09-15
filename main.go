@@ -220,8 +220,27 @@ func RpcCurrent(c *gin.Context) {
 	c.JSON(200, user)
 }
 
+type Access struct {
+	Rt string `json:"rt"`
+}
+
 func RpcAccess(c *gin.Context) {
-	c.JSON(200, gin.H{})
+	var data Access
+	err := c.BindJSON(&data)
+	Unwrap(err)
+
+	users, err := getUsers(GetQuery{
+		"rt": data.Rt,
+	})
+	Unwrap(err)
+	if len(users) == 0 {
+		panic("No users with such refresh token.")
+	}
+	user := users[0]
+	at, err := encodeToken(AT_SECRET, user.Id)
+	Unwrap(err)
+
+	c.JSON(200, at)
 }
 
 func RpcReg(c *gin.Context) {

@@ -204,3 +204,37 @@ func TestCurrentOk(t *testing.T) {
 	user.Rt = rt
 	rpcCompare("current", Current{Rt: rt}, server, recorder, user)
 }
+
+func TestAccessOk(t *testing.T) {
+	server, recorder := setup()
+	user := createUser("hello", "1234", "", "", "")
+
+	data := Login{
+		Username: user.Username,
+		Password: "1234",
+	}
+
+	rpc("login", data, server, recorder)
+	rt := recorder.Body.String()
+	rt = strings.ReplaceAll(rt, `"`, ``)
+	token, err := decodeToken(rt, RT_SECRET)
+	Unwrap(err)
+	Assert(token.Created <= utc())
+	Assert(token.UserId == user.Id)
+
+	var inDbRt string
+	err = db.QueryRow(
+		`SELECT rt FROM appuser WHERE username = 'hello'`,
+	).Scan(&inDbRt)
+	Unwrap(err)
+	Assert(inDbRt == rt)
+	recorder.Body.Reset()
+
+	rpc("access", Access{Rt: rt}, server, recorder)
+	at := recorder.Body.String()
+	at = strings.ReplaceAll(at, `"`, ``)
+	token, err = decodeToken(at, AT_SECRET)
+	Unwrap(err)
+	Assert(token.Created <= utc())
+	Assert(token.UserId == user.Id)
+}
