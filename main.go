@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -185,6 +186,10 @@ type Logout struct {
 	Rt string `json:"rt"`
 }
 
+type Current struct {
+	Rt string `json:"rt"`
+}
+
 func RpcLogout(c *gin.Context) {
 	var data Logout
 	err := c.BindJSON(&data)
@@ -196,6 +201,15 @@ func RpcLogout(c *gin.Context) {
 }
 
 func RpcCurrent(c *gin.Context) {
+	var data Current
+	err := c.BindJSON(&data)
+	Unwrap(err)
+
+	getUsers(GetQuery{
+		"rt": data.Rt,
+	})
+	Unwrap(err)
+
 	c.JSON(200, gin.H{})
 }
 
@@ -211,7 +225,82 @@ func RpcDereg(c *gin.Context) {
 	c.JSON(200, gin.H{})
 }
 
-func getUsers(gq GetQuery) {
+// ref: https://stackoverflow.com/a/71624929/14748231
+func Map[T, U any](ts []T, f func(T) U) []U {
+	us := make([]U, len(ts))
+	for i := range ts {
+		us[i] = f(ts[i])
+	}
+	return us
+}
+
+func getUsers(gq GetQuery) ([]User, error) {
+	// Extreme levels of sql injection danger are in the air. But we're ok for
+	// now.
+	q := `SELECT id, username, firstname, patronym, surname, rt  FROM appuser WHERE `
+	var qArgs []any
+	for k, v := range gq {
+		if !strings.HasSuffix(q, "WHERE ") {
+			q += " AND "
+		}
+		if strings.HasPrefix(k, "$") {
+			return nil, Err("Cannot have top-level operator.")
+		}
+		if v, ok := v.(GetQuery); ok {
+			for k2, v2 := range v {
+				if k2 != "$in" {
+					return nil, Err(
+						"Only $in is supported as second-level operator.",
+					)
+				}
+				arr, ok := v2.([]any)
+				if !ok {
+					return nil, Err("")
+				}
+				joined := strings.Join(
+					Map(
+						arr,
+						func(x any) string {
+							xStr, ok := x.(string)
+							if !ok {
+								panic("only strings are supported for $in")
+							}
+							return "'" + xStr + "'"
+						},
+					),
+					", ",
+				)
+				q += k + " IN (" + joined + ")"
+			}
+			continue
+		}
+		qArgs = append(qArgs, v)
+		q += k + ` = $` + string(len(qArgs))
+	}
+	q += ";"
+	Print(q)
+	rows, err := db.Query(q, qArgs...)
+	Unwrap(err)
+	defer rows.Close()
+	var users []User
+	for rows.Next() {
+		var user User
+		if err = rows.Scan(
+			&user.Id,
+			&user.Username,
+			&user.Firstname,
+			&user.Patronym,
+			&user.Surname,
+			&user.Rt,
+		); err != nil {
+			return users, err
+		}
+		users = append(users, user)
+	}
+	if err = rows.Err(); err != nil {
+		return users, err
+	}
+	return users, nil
 }
 
 func RpcGetUsers(c *gin.Context) {
