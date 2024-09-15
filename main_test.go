@@ -58,7 +58,8 @@ func rpc(
 	server *gin.Engine,
 	recorder *httptest.ResponseRecorder,
 ) *httptest.ResponseRecorder {
-	marshal, _ := json.Marshal(data)
+	marshal, err := json.Marshal(data)
+	Unwrap(err)
 	req, _ := http.NewRequest(
 		"POST",
 		"/rpc/"+target,
@@ -66,6 +67,24 @@ func rpc(
 	)
 	server.ServeHTTP(recorder, req)
 	Assert(recorder.Code == 200)
+	return recorder
+}
+
+func rpcCompare(
+	target string,
+	data any,
+	server *gin.Engine,
+	recorder *httptest.ResponseRecorder,
+	compared any,
+) *httptest.ResponseRecorder {
+	recorder = rpc(target, data, server, recorder)
+	comparedJson, err := json.Marshal(compared)
+	Unwrap(err)
+	Assert(
+		recorder.Body.String() == string(comparedJson),
+		recorder.Body.String(),
+		string(comparedJson),
+	)
 	return recorder
 }
 
@@ -154,4 +173,31 @@ func TestGetUsersInAndIdOk(t *testing.T) {
 	Unwrap(err)
 	Assert(len(users) == 1)
 	Assert(users[0].Username == user1.Username)
+}
+
+func TestCurrentOk(t *testing.T) {
+	server, recorder := setup()
+	user := createUser("hello", "1234", "", "", "")
+
+	data := Login{
+		Username: user.Username,
+		Password: "1234",
+	}
+
+	rpc("login", data, server, recorder)
+	rt := recorder.Body.String()
+	rt = strings.ReplaceAll(rt, `"`, ``)
+	token, err := decodeToken(rt, RT_SECRET)
+	Unwrap(err)
+	Assert(token.Created <= utc())
+	Assert(token.UserId == user.Id)
+
+	var inDbRt string
+	err = db.QueryRow(
+		`SELECT rt FROM appuser WHERE username = 'hello'`,
+	).Scan(&inDbRt)
+	Unwrap(err)
+	Assert(inDbRt == rt)
+
+	rpcCompare("current", Current{Rt: rt}, server, recorder, user)
 }

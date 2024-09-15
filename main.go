@@ -208,12 +208,16 @@ func RpcCurrent(c *gin.Context) {
 	err := c.BindJSON(&data)
 	Unwrap(err)
 
-	getUsers(GetQuery{
+	users, err := getUsers(GetQuery{
 		"rt": data.Rt,
 	})
 	Unwrap(err)
+	if len(users) == 0 {
+		panic("No users with such refresh token.")
+	}
+	user := users[0]
 
-	c.JSON(200, gin.H{})
+	c.JSON(200, user)
 }
 
 func RpcAccess(c *gin.Context) {
@@ -336,9 +340,11 @@ func setupDb(driver string, url string) {
 	db = _db
 }
 
-func Assert(condition bool) {
+func Assert(condition bool, msg ...string) {
 	if !condition {
-		panic("assertion error")
+		// TODO: Allow `msg ...any`
+		joined := strings.Join(msg, ", ")
+		panic("Assertion Error: " + joined)
 	}
 }
 
