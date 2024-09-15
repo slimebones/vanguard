@@ -338,6 +338,7 @@ func getUsers(gq GetQuery) ([]User, error) {
 }
 
 func RpcGetUsers(c *gin.Context) {
+	// TODO: Implement domain header check.
 	var data GetQuery
 	err := c.BindJSON(&data)
 	Unwrap(err)
