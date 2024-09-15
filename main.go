@@ -167,6 +167,17 @@ func RpcLogin(c *gin.Context) {
 	rt, err := encodeToken(RT_SECRET, id)
 	Unwrap(err)
 
+	_, err = db.Exec(
+		`
+			UPDATE appuser
+			SET rt = $1
+			WHERE username = $2
+		`,
+		rt,
+		data.Username,
+	)
+	Unwrap(err)
+
 	c.JSON(200, rt)
 }
 

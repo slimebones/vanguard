@@ -25,25 +25,27 @@ func migrateDb() {
 	// _, err = db.Query(content)
 	// Unwrap(err)
 
-	// _, err := db.Exec(`
-	// 	CREATE TABLE "appuser"(
-	// 		"id" SERIAL PRIMARY KEY,
-	// 		"hpassword" VARCHAR NOT NULL,
-	// 		"username" VARCHAR NOT NULL UNIQUE,
-	// 		"firstname" VARCHAR,
-	// 		"patronym" VARCHAR,
-	// 		"surname" VARCHAR,
-	// 		"rt" VARCHAR
-	// 	);
-	// `)
-	// Unwrap(err)
-	_, err := db.Exec(`TRUNCATE TABLE appuser RESTART IDENTITY`)
+	// we have INTEGER PRIMARY KEY instead of SERIAL PRIMARY KEY since sqlite
+	// doesn't have auto increment for the latter
+	_, err := db.Exec(`
+		CREATE TABLE "appuser"(
+			"id" INTEGER PRIMARY KEY,
+			"hpassword" VARCHAR NOT NULL,
+			"username" VARCHAR NOT NULL UNIQUE,
+			"firstname" VARCHAR,
+			"patronym" VARCHAR,
+			"surname" VARCHAR,
+			"rt" VARCHAR
+		);
+	`)
 	Unwrap(err)
+	// _, err := db.Exec(`TRUNCATE TABLE appuser RESTART IDENTITY`)
+	// Unwrap(err)
 }
 
 func setup() (*gin.Engine, *httptest.ResponseRecorder) {
 	server := newServer(
-		NewServerArgs{},
+		NewServerArgs{dbDriver: "sqlite", dbUrl: ":memory:"},
 	)
 	recorder := httptest.NewRecorder()
 	migrateDb()
@@ -73,4 +75,11 @@ func TestLogin(t *testing.T) {
 	Unwrap(err)
 	Assert(token.Created <= utc())
 	Assert(token.UserId == user.Id)
+
+	var inDbRt string
+	err = db.QueryRow(
+		`SELECT rt FROM appuser WHERE username = 'hello'`,
+	).Scan(&inDbRt)
+	Unwrap(err)
+	Assert(inDbRt == rt)
 }
