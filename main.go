@@ -275,7 +275,7 @@ func getUsers(gq GetQuery) ([]User, error) {
 			continue
 		}
 		qArgs = append(qArgs, v)
-		q += k + ` = $` + string(len(qArgs))
+		q += k + ` = $` + fmt.Sprintf("%c", len(qArgs))
 	}
 	q += ";"
 	Print(q)
