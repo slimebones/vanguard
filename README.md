@@ -1,0 +1,3 @@
+# Vanguard
+
+Portable auth server.
