@@ -199,5 +199,8 @@ func TestCurrentOk(t *testing.T) {
 	Unwrap(err)
 	Assert(inDbRt == rt)
 
+	recorder.Body.Reset()
+
+	user.Rt = rt
 	rpcCompare("current", Current{Rt: rt}, server, recorder, user)
 }

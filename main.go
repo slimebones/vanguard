@@ -343,7 +343,7 @@ func setupDb(driver string, url string) {
 func Assert(condition bool, msg ...string) {
 	if !condition {
 		// TODO: Allow `msg ...any`
-		joined := strings.Join(msg, ", ")
+		joined := strings.Join(msg, " ;; ")
 		panic("Assertion Error: " + joined)
 	}
 }
