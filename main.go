@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 
@@ -285,7 +286,8 @@ func getUsers(gq GetQuery) ([]User, error) {
 			continue
 		}
 		qArgs = append(qArgs, v)
-		q += k + ` = $` + fmt.Sprintf("%c", len(qArgs))
+		argNumStr := strconv.Itoa(len(qArgs))
+		q += k + ` = $` + argNumStr
 	}
 	q += ";"
 	rows, err := db.Query(q, qArgs...)

@@ -126,7 +126,7 @@ func TestLogoutOk(t *testing.T) {
 	Assert(inDbRt == "")
 }
 
-func TestGetUsersOk(t *testing.T) {
+func TestGetUsersInOk(t *testing.T) {
 	_, _ = setup()
 	user1 := createUser("hello", "1234", "", "", "")
 	user2 := createUser("world", "1234", "", "", "")
@@ -139,4 +139,19 @@ func TestGetUsersOk(t *testing.T) {
 	Assert(len(users) == 2)
 	Assert(users[0].Username == user1.Username)
 	Assert(users[1].Username == user2.Username)
+}
+
+func TestGetUsersInAndIdOk(t *testing.T) {
+	_, _ = setup()
+	user1 := createUser("hello", "1234", "", "", "")
+	_ = createUser("world", "1234", "", "", "")
+	users, err := getUsers(GetQuery{
+		"id": 1,
+		"username": Dict{
+			"$in": []string{"hello", "world"},
+		},
+	})
+	Unwrap(err)
+	Assert(len(users) == 1)
+	Assert(users[0].Username == user1.Username)
 }
