@@ -2,6 +2,7 @@
 # STEP 1 build executable binary
 ############################
 FROM golang:alpine AS build
+
 # Install git.
 # Git is required for fetching the dependencies.
 RUN apk update && apk add --no-cache 'git=~2'
@@ -28,7 +29,7 @@ WORKDIR /
 # Copy our static executable.
 COPY --from=build /go/main /go/main
 
-ENV GIN_MODE release
+ENV GIN_MODE debug
 
 WORKDIR /go
 

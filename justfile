@@ -1,4 +1,5 @@
 set shell := ["nu", "-c"]
+set dotenv-load
 
 lint:
     go fmt
@@ -12,4 +13,4 @@ run:
     go run .
 
 migration *t:
-	@ dbmate -s "migrations/psql_schema.sql" -d "migrations/psql" -u "postgres://vanguard:vanguard@localhost:9005/vanguard?sslmode=disable" {{t}}
+	@ dbmate -s "migrations/psql_schema.sql" -d "migrations/psql" {{t}}
