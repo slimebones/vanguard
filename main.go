@@ -301,6 +301,8 @@ func getUsers(gq GetQuery) ([]User, error) {
 				arr := unpackArr(v2)
 				strArr := Map(
 					arr,
+					// Many 64 cases are covered... time to test out graphql...
+					// Or write up own query language!
 					func(x any) string {
 						xStr, ok := x.(string)
 						var xInt int
