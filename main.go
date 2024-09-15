@@ -244,11 +244,11 @@ func RpcAccess(c *gin.Context) {
 }
 
 func RpcReg(c *gin.Context) {
-	c.JSON(200, gin.H{})
+	c.JSON(404, gin.H{})
 }
 
 func RpcDereg(c *gin.Context) {
-	c.JSON(200, gin.H{})
+	c.JSON(404, gin.H{})
 }
 
 // ref: https://stackoverflow.com/a/71624929/14748231
@@ -338,7 +338,14 @@ func getUsers(gq GetQuery) ([]User, error) {
 }
 
 func RpcGetUsers(c *gin.Context) {
-	c.JSON(200, gin.H{})
+	var data GetQuery
+	err := c.BindJSON(&data)
+	Unwrap(err)
+
+	users, err := getUsers(data)
+	Unwrap(err)
+
+	c.JSON(200, users)
 }
 
 func setupDb(driver string, url string) {

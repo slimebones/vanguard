@@ -238,3 +238,19 @@ func TestAccessOk(t *testing.T) {
 	Assert(token.Created <= utc())
 	Assert(token.UserId == user.Id)
 }
+
+func TestRpcGetUsersOk(t *testing.T) {
+	server, recorder := setup()
+
+	_ = createUser("hello", "1234", "", "", "")
+	user2 := createUser("the", "1234", "", "", "")
+	_ = createUser("world", "1234", "", "", "")
+
+	rpcCompare(
+		"server/get_users",
+		GetQuery{"username": "the"},
+		server,
+		recorder,
+		[]User{user2},
+	)
+}
