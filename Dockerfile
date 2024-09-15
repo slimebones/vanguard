@@ -16,6 +16,7 @@ COPY . .
 # Using go get.
 RUN go get -d -v
 
+
 # Build the binary.
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /go/main .
 

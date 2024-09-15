@@ -24,7 +24,7 @@ var dbDriver string
 const DEFAULT_DB_DRIVER = "postgres"
 
 // const DEFAULT_DB_URL = "postgres://vanguard:vanguard@localhost:9005/vanguard?sslmode=disable"
-const DEFAULT_DB_URL = "postgres://vanguard:vanguard@psql:9015/vanguard?sslmode=disable"
+const DEFAULT_DB_URL = "postgres://vanguard:vanguard@psql:5432/vanguard?sslmode=disable"
 const RT_SECRET = "weloveauth"
 const AT_SECRET = "helloworld"
 
@@ -67,6 +67,7 @@ type Token struct {
 }
 
 func decodeToken(token string, secret string) (*Token, error) {
+	// TODO: check expiration
 	jwtToken, err := jwt.ParseWithClaims(
 		token,
 		&Token{},
@@ -163,6 +164,7 @@ func RpcLogin(c *gin.Context) {
 		data.Username,
 	).Scan(&id, &hpassword)
 	if err != nil {
+		Print(err)
 		panic("invalid username")
 	}
 
