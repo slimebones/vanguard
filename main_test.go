@@ -248,7 +248,7 @@ func TestRpcGetUsersOk(t *testing.T) {
 
 	rpcCompare(
 		"server/get_users",
-		GetQuery{"username": "the"},
+		Dict{"gq": GetQuery{"username": "the"}},
 		server,
 		recorder,
 		[]User{user2},
