@@ -274,6 +274,11 @@ func unpackArr(s any) []any {
 	return r
 }
 
+func F(s string, args ...string) string {
+	// TODO: Implement in C# style "Hello {0}, we have {1}". Also, try to accept `args ...any`.
+	return s
+}
+
 func getUsers(gq GetQuery) ([]User, error) {
 	// Extreme levels of sql injection danger are in the air. But we're ok for
 	// now.
@@ -298,8 +303,20 @@ func getUsers(gq GetQuery) ([]User, error) {
 					arr,
 					func(x any) string {
 						xStr, ok := x.(string)
+						var xInt int
 						if !ok {
-							panic("Only strings are supported for $in.")
+							xFloat, ok := x.(float64)
+							xInt = int(xFloat)
+							if !ok {
+								xInt64, ok := x.(int64)
+								xInt = int(xInt64)
+								if !ok {
+									panic(
+										"Only strings or ints are supported for $in",
+									)
+								}
+							}
+							return strconv.Itoa(xInt)
 						}
 						return "'" + xStr + "'"
 					},

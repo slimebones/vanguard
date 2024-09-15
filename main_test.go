@@ -175,6 +175,24 @@ func TestGetUsersInAndIdOk(t *testing.T) {
 	Assert(users[0].Username == user1.Username)
 }
 
+func TestGetUsersIdInOk(t *testing.T) {
+	_, _ = setup()
+
+	user1 := createUser("hello", "1234", "", "", "")
+	_ = createUser("the", "1234", "", "", "")
+	user3 := createUser("world", "1234", "", "", "")
+
+	users, err := getUsers(GetQuery{
+		"id": Dict{
+			"$in": []Id{1, 3},
+		},
+	})
+	Unwrap(err)
+	Assert(len(users) == 2)
+	Assert(users[0].Username == user1.Username)
+	Assert(users[1].Username == user3.Username)
+}
+
 func TestCurrentOk(t *testing.T) {
 	server, recorder := setup()
 	user := createUser("hello", "1234", "", "", "")
@@ -252,5 +270,21 @@ func TestRpcGetUsersOk(t *testing.T) {
 		server,
 		recorder,
 		[]User{user2},
+	)
+}
+
+func TestRpcGetUsersIdInOk(t *testing.T) {
+	server, recorder := setup()
+
+	user1 := createUser("hello", "1234", "", "", "")
+	_ = createUser("the", "1234", "", "", "")
+	user3 := createUser("world", "1234", "", "", "")
+
+	rpcCompare(
+		"server/get_users",
+		Dict{"gq": GetQuery{"id": Dict{"$in": []Id{1, 3}}}},
+		server,
+		recorder,
+		[]User{user1, user3},
 	)
 }
