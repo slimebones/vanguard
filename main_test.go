@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// Migrates db for testing purposes.
 func migrateDb() {
 	// file, err := os.Open("migrations/psql_schema.sql")
 	// defer func() {
@@ -24,23 +25,25 @@ func migrateDb() {
 	// _, err = db.Query(content)
 	// Unwrap(err)
 
-	_, err := db.Query(`
-		CREATE TABLE "appuser"(
-			"id" SERIAL PRIMARY KEY,
-			"hpassword" VARCHAR NOT NULL,
-			"username" VARCHAR NOT NULL UNIQUE,
-			"firstname" VARCHAR,
-			"patronym" VARCHAR,
-			"surname" VARCHAR,
-			"rt" VARCHAR
-		);
-	`)
+	// _, err := db.Exec(`
+	// 	CREATE TABLE "appuser"(
+	// 		"id" SERIAL PRIMARY KEY,
+	// 		"hpassword" VARCHAR NOT NULL,
+	// 		"username" VARCHAR NOT NULL UNIQUE,
+	// 		"firstname" VARCHAR,
+	// 		"patronym" VARCHAR,
+	// 		"surname" VARCHAR,
+	// 		"rt" VARCHAR
+	// 	);
+	// `)
+	// Unwrap(err)
+	_, err := db.Exec(`TRUNCATE TABLE appuser RESTART IDENTITY`)
 	Unwrap(err)
 }
 
 func setup() (*gin.Engine, *httptest.ResponseRecorder) {
 	server := newServer(
-		NewServerArgs{dbDriver: "sqlite", dbUrl: ":memory:"},
+		NewServerArgs{},
 	)
 	recorder := httptest.NewRecorder()
 	migrateDb()
@@ -49,11 +52,10 @@ func setup() (*gin.Engine, *httptest.ResponseRecorder) {
 
 func TestLogin(t *testing.T) {
 	server, recorder := setup()
-	createUser("hello", "1234", "", "", "")
-	Assert(false)
+	user := createUser("hello", "1234", "", "", "")
 
 	data := Login{
-		Username: "hello",
+		Username: user.Username,
 		Password: "1234",
 	}
 	marshal, _ := json.Marshal(data)
@@ -65,6 +67,10 @@ func TestLogin(t *testing.T) {
 	)
 	server.ServeHTTP(recorder, req)
 	Assert(recorder.Code == 200)
-	Assert(len(recorder.Body.String()) > 0)
-	Assert(false)
+	rt := recorder.Body.String()
+	rt = strings.ReplaceAll(rt, `"`, ``)
+	token, err := decodeToken(rt, RT_SECRET)
+	Unwrap(err)
+	Assert(token.Created <= utc())
+	Assert(token.UserId == user.Id)
 }

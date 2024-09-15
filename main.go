@@ -16,11 +16,16 @@ import (
 
 var db *sql.DB
 
-const DEFAULT_DB_DRIVER = "postgres"
-const DEFAULT_DB_URL = "postgres://vanguard:vanguard@localhost:9005/vanguard"
+var dbDriver string
 
-type Id = int32
+const DEFAULT_DB_DRIVER = "postgres"
+const DEFAULT_DB_URL = "postgres://vanguard:vanguard@localhost:9005/vanguard?sslmode=disable"
+const RT_SECRET = "weloveauth"
+const AT_SECRET = "helloworld"
+
+type Id = int64
 type Time = int64
+type GetQuery = map[string]any
 
 func utc() Time {
 	return time.Now().Unix()
@@ -31,17 +36,17 @@ func hashPassword(password string) (string, error) {
 	return string(bytes), err
 }
 
-func checkPasswordHash(password, hash string) bool {
+func checkPasswordHash(password string, hash string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	return err == nil
 }
 
-func newToken(secret string, userId Id) (string, error) {
+func encodeToken(secret string, userId Id) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id": userId,
 		"created": utc(),
 	})
-	return token.SignedString(secret)
+	return token.SignedString([]byte(secret))
 }
 
 func Err(msg string) error {
@@ -49,29 +54,35 @@ func Err(msg string) error {
 }
 
 type Token struct {
-	UserId  Id
-	Created Time
+	UserId  Id   `json:"user_id"`
+	Created Time `json:"created"`
+	jwt.StandardClaims
 }
 
-func parseToken(token string, secret string) (*Token, error) {
-	claims := jwt.MapClaims{}
-	_, err := jwt.ParseWithClaims(
+func decodeToken(token string, secret string) (*Token, error) {
+	jwtToken, err := jwt.ParseWithClaims(
 		token,
-		claims,
-		func(t *jwt.Token) (interface{}, error) { return []byte(secret), nil },
+		&Token{},
+		func(t *jwt.Token) (any, error) { return []byte(secret), nil },
 	)
 	if err != nil {
 		return nil, err
 	}
-	userId, ok := claims["user_id"].(Id)
+
+	claims, ok := jwtToken.Claims.(*Token)
 	if !ok {
-		return nil, Err("cannot parse user id")
+		return nil, Err("cannot retrieve token claims")
 	}
-	created, ok := claims["created"].(Time)
-	if !ok {
-		return nil, Err("cannot parse creation time")
-	}
-	return &Token{userId, created}, nil
+	return claims, nil
+}
+
+type User struct {
+	Id        Id     `json:"id"`
+	Username  string `json:"username"`
+	Firstname string `json:"firstname"`
+	Patronym  string `json:"patronym"`
+	Surname   string `json:"surname"`
+	Rt        string `json:"rt"`
 }
 
 func createUser(
@@ -80,16 +91,16 @@ func createUser(
 	firstname string,
 	patronym string,
 	surname string,
-) {
+) User {
 	hpassword, err := hashPassword(password)
 	Unwrap(err)
-	rows, err := db.Query(
+
+	_, err = db.Exec(
 		`
 			INSERT INTO appuser (
 				username, hpassword, firstname, patronym, surname
 			) VALUES
 				($1, $2, $3, $4, $5)
-			RETURNING *
 		`,
 		username,
 		hpassword,
@@ -98,7 +109,24 @@ func createUser(
 		surname,
 	)
 	Unwrap(err)
-	Print(rows)
+
+	var id Id
+	err = db.QueryRow(
+		`
+			SELECT id FROM appuser WHERE username = $1
+		`,
+		username,
+	).Scan(&id)
+	Unwrap(err)
+
+	return User{
+		Id:        id,
+		Username:  username,
+		Firstname: firstname,
+		Patronym:  patronym,
+		Surname:   surname,
+		Rt:        "",
+	}
 }
 
 type Login struct {
@@ -116,39 +144,56 @@ func Print(obj ...any) {
 	fmt.Println(obj...)
 }
 
-func login(c *gin.Context) {
+func RpcLogin(c *gin.Context) {
 	var data Login
 	err := c.BindJSON(&data)
 	Unwrap(err)
 
-	// user := db.QueryRow(
-	// 	`SELECT * FROM appuser WHERE username = $1`, data.Username,
-	// )
+	var id Id
+	var hpassword string
+	err = db.QueryRow(
+		`SELECT id, hpassword FROM appuser WHERE username = $1`,
+		data.Username,
+	).Scan(&id, &hpassword)
+	if err != nil {
+		Print(err)
+		panic("invalid username")
+	}
 
-	c.JSON(200, gin.H{"donuts": true})
+	if !checkPasswordHash(data.Password, hpassword) {
+		panic("invalid password")
+	}
+
+	rt, err := encodeToken(RT_SECRET, id)
+	Unwrap(err)
+
+	c.JSON(200, rt)
 }
 
-func logout(c *gin.Context) {
+func RpcLogout(c *gin.Context) {
 	c.JSON(200, gin.H{})
 }
 
-func current(c *gin.Context) {
+func RpcCurrent(c *gin.Context) {
 	c.JSON(200, gin.H{})
 }
 
-func access(c *gin.Context) {
+func RpcAccess(c *gin.Context) {
 	c.JSON(200, gin.H{})
 }
 
-func reg(c *gin.Context) {
+func RpcReg(c *gin.Context) {
 	c.JSON(200, gin.H{})
 }
 
-func dereg(c *gin.Context) {
+func RpcDereg(c *gin.Context) {
 	c.JSON(200, gin.H{})
 }
 
-func get_users(c *gin.Context) {
+func getUsers(gq GetQuery) {
+}
+
+func RpcGetUsers(c *gin.Context) {
 	c.JSON(200, gin.H{})
 }
 
@@ -160,6 +205,7 @@ func setupDb(driver string, url string) {
 		url = DEFAULT_DB_URL
 	}
 
+	dbDriver = driver
 	_db, err := sql.Open(
 		driver,
 		url,
@@ -185,14 +231,14 @@ func newServer(args NewServerArgs) *gin.Engine {
 	server := gin.New()
 	server.Use(gin.Recovery())
 
-	server.POST("/rpc/login", login)
-	server.POST("/rpc/logout", logout)
-	server.POST("/rpc/current", current)
-	server.POST("/rpc/access", access)
+	server.POST("/rpc/login", RpcLogin)
+	server.POST("/rpc/logout", RpcLogout)
+	server.POST("/rpc/current", RpcCurrent)
+	server.POST("/rpc/access", RpcAccess)
 
-	server.POST("/rpc/server/reg", reg)
-	server.POST("/rpc/server/dereg", dereg)
-	server.POST("/rpc/server/get_users", get_users)
+	server.POST("/rpc/server/reg", RpcReg)
+	server.POST("/rpc/server/dereg", RpcDereg)
+	server.POST("/rpc/server/get_users", RpcGetUsers)
 	return server
 }
 
