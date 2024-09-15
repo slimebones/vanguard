@@ -60,15 +60,8 @@ func TestLogin(t *testing.T) {
 		Username: user.Username,
 		Password: "1234",
 	}
-	marshal, _ := json.Marshal(data)
 
-	req, _ := http.NewRequest(
-		"POST",
-		"/rpc/login",
-		strings.NewReader(string(marshal)),
-	)
-	server.ServeHTTP(recorder, req)
-	Assert(recorder.Code == 200)
+	rpc("login", data, server, recorder)
 	rt := recorder.Body.String()
 	rt = strings.ReplaceAll(rt, `"`, ``)
 	token, err := decodeToken(rt, RT_SECRET)
@@ -82,4 +75,53 @@ func TestLogin(t *testing.T) {
 	).Scan(&inDbRt)
 	Unwrap(err)
 	Assert(inDbRt == rt)
+}
+
+func rpc(
+	target string,
+	data any,
+	server *gin.Engine,
+	recorder *httptest.ResponseRecorder,
+) *httptest.ResponseRecorder {
+	marshal, _ := json.Marshal(data)
+	req, _ := http.NewRequest(
+		"POST",
+		"/rpc/"+target,
+		strings.NewReader(string(marshal)),
+	)
+	server.ServeHTTP(recorder, req)
+	Assert(recorder.Code == 200)
+	return recorder
+}
+
+func TestLogout(t *testing.T) {
+	server, recorder := setup()
+	user := createUser("hello", "1234", "", "", "")
+
+	data := Login{
+		Username: user.Username,
+		Password: "1234",
+	}
+	rpc("login", data, server, recorder)
+
+	rt := recorder.Body.String()
+	rt = strings.ReplaceAll(rt, `"`, ``)
+	token, err := decodeToken(rt, RT_SECRET)
+	Unwrap(err)
+	Assert(token.Created <= utc())
+	Assert(token.UserId == user.Id)
+
+	var inDbRt string
+	err = db.QueryRow(
+		`SELECT rt FROM appuser WHERE username = 'hello'`,
+	).Scan(&inDbRt)
+	Unwrap(err)
+	Assert(inDbRt == rt)
+
+	rpc("logout", Logout{Rt: rt}, server, recorder)
+	err = db.QueryRow(
+		`SELECT ifnull(rt, "") FROM appuser WHERE username = 'hello'`,
+	).Scan(&inDbRt)
+	Unwrap(err)
+	Assert(inDbRt == "")
 }

@@ -181,7 +181,17 @@ func RpcLogin(c *gin.Context) {
 	c.JSON(200, rt)
 }
 
+type Logout struct {
+	Rt string `json:"rt"`
+}
+
 func RpcLogout(c *gin.Context) {
+	var data Logout
+	err := c.BindJSON(&data)
+	Unwrap(err)
+
+	_, err = db.Exec(`UPDATE appuser SET rt = NULL WHERE rt = $1`, data.Rt)
+	Unwrap(err)
 	c.JSON(200, gin.H{})
 }
 
