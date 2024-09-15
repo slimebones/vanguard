@@ -22,7 +22,9 @@ var db *sql.DB
 var dbDriver string
 
 const DEFAULT_DB_DRIVER = "postgres"
-const DEFAULT_DB_URL = "postgres://vanguard:vanguard@localhost:9005/vanguard?sslmode=disable"
+
+// const DEFAULT_DB_URL = "postgres://vanguard:vanguard@localhost:9005/vanguard?sslmode=disable"
+const DEFAULT_DB_URL = "postgres://vanguard:vanguard@psql:9015/vanguard?sslmode=disable"
 const RT_SECRET = "weloveauth"
 const AT_SECRET = "helloworld"
 
@@ -398,5 +400,5 @@ func newServer(args NewServerArgs) *gin.Engine {
 
 func main() {
 	server := newServer(NewServerArgs{})
-	server.Run("localhost:9014")
+	server.Run("0.0.0.0:9014")
 }
