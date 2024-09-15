@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 	"time"
 
@@ -26,7 +27,9 @@ const AT_SECRET = "helloworld"
 
 type Id = int64
 type Time = int64
-type GetQuery = map[string]any
+type Dict = map[string]any
+type Query = Dict
+type GetQuery = Query
 
 func utc() Time {
 	return time.Now().Unix()
@@ -157,7 +160,6 @@ func RpcLogin(c *gin.Context) {
 		data.Username,
 	).Scan(&id, &hpassword)
 	if err != nil {
-		Print(err)
 		panic("invalid username")
 	}
 
@@ -234,10 +236,20 @@ func Map[T, U any](ts []T, f func(T) U) []U {
 	return us
 }
 
+// Ref: https://stackoverflow.com/a/73029665/14748231
+func unpackArr(s any) []any {
+	v := reflect.ValueOf(s)
+	r := make([]any, v.Len())
+	for i := 0; i < v.Len(); i++ {
+		r[i] = v.Index(i).Interface()
+	}
+	return r
+}
+
 func getUsers(gq GetQuery) ([]User, error) {
 	// Extreme levels of sql injection danger are in the air. But we're ok for
 	// now.
-	q := `SELECT id, username, firstname, patronym, surname, rt  FROM appuser WHERE `
+	q := `SELECT id, username, firstname, patronym, surname, ifnull(rt, "") FROM appuser WHERE `
 	var qArgs []any
 	for k, v := range gq {
 		if !strings.HasSuffix(q, "WHERE ") {
@@ -253,21 +265,19 @@ func getUsers(gq GetQuery) ([]User, error) {
 						"Only $in is supported as second-level operator.",
 					)
 				}
-				arr, ok := v2.([]any)
-				if !ok {
-					return nil, Err("")
-				}
+				arr := unpackArr(v2)
+				strArr := Map(
+					arr,
+					func(x any) string {
+						xStr, ok := x.(string)
+						if !ok {
+							panic("Only strings are supported for $in.")
+						}
+						return "'" + xStr + "'"
+					},
+				)
 				joined := strings.Join(
-					Map(
-						arr,
-						func(x any) string {
-							xStr, ok := x.(string)
-							if !ok {
-								panic("only strings are supported for $in")
-							}
-							return "'" + xStr + "'"
-						},
-					),
+					strArr,
 					", ",
 				)
 				q += k + " IN (" + joined + ")"
@@ -278,7 +288,6 @@ func getUsers(gq GetQuery) ([]User, error) {
 		q += k + ` = $` + fmt.Sprintf("%c", len(qArgs))
 	}
 	q += ";"
-	Print(q)
 	rows, err := db.Query(q, qArgs...)
 	Unwrap(err)
 	defer rows.Close()

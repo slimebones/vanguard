@@ -52,7 +52,24 @@ func setup() (*gin.Engine, *httptest.ResponseRecorder) {
 	return server, recorder
 }
 
-func TestLogin(t *testing.T) {
+func rpc(
+	target string,
+	data any,
+	server *gin.Engine,
+	recorder *httptest.ResponseRecorder,
+) *httptest.ResponseRecorder {
+	marshal, _ := json.Marshal(data)
+	req, _ := http.NewRequest(
+		"POST",
+		"/rpc/"+target,
+		strings.NewReader(string(marshal)),
+	)
+	server.ServeHTTP(recorder, req)
+	Assert(recorder.Code == 200)
+	return recorder
+}
+
+func TestLoginOk(t *testing.T) {
 	server, recorder := setup()
 	user := createUser("hello", "1234", "", "", "")
 
@@ -77,24 +94,7 @@ func TestLogin(t *testing.T) {
 	Assert(inDbRt == rt)
 }
 
-func rpc(
-	target string,
-	data any,
-	server *gin.Engine,
-	recorder *httptest.ResponseRecorder,
-) *httptest.ResponseRecorder {
-	marshal, _ := json.Marshal(data)
-	req, _ := http.NewRequest(
-		"POST",
-		"/rpc/"+target,
-		strings.NewReader(string(marshal)),
-	)
-	server.ServeHTTP(recorder, req)
-	Assert(recorder.Code == 200)
-	return recorder
-}
-
-func TestLogout(t *testing.T) {
+func TestLogoutOk(t *testing.T) {
 	server, recorder := setup()
 	user := createUser("hello", "1234", "", "", "")
 
@@ -124,4 +124,19 @@ func TestLogout(t *testing.T) {
 	).Scan(&inDbRt)
 	Unwrap(err)
 	Assert(inDbRt == "")
+}
+
+func TestGetUsersOk(t *testing.T) {
+	_, _ = setup()
+	user1 := createUser("hello", "1234", "", "", "")
+	user2 := createUser("world", "1234", "", "", "")
+	users, err := getUsers(GetQuery{
+		"username": Dict{
+			"$in": []string{"hello", "world"},
+		},
+	})
+	Unwrap(err)
+	Assert(len(users) == 2)
+	Assert(users[0].Username == user1.Username)
+	Assert(users[1].Username == user2.Username)
 }

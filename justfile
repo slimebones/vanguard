@@ -1,8 +1,10 @@
+set shell := ["nu", "-c"]
+
 lint:
     go fmt
 
-test:
-    go test
+test t="":
+    if "{{t}}" == "" { go test } else { go test -run {{t}} }
 
 check: lint test
 
