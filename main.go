@@ -24,9 +24,9 @@ var dbDriver string
 
 const DEFAULT_DB_DRIVER = "postgres"
 
-const DEFAULT_DB_URL = "postgres://vanguard:vanguard@localhost:9005/vanguard?sslmode=disable"
+// const DEFAULT_DB_URL = "postgres://vanguard:vanguard@localhost:9005/vanguard?sslmode=disable"
 
-// const DEFAULT_DB_URL = "postgres://vanguard:vanguard@psql:5432/vanguard?sslmode=disable"
+const DEFAULT_DB_URL = "postgres://vanguard:vanguard@psql:5432/vanguard?sslmode=disable"
 const RT_SECRET = "weloveauth"
 const AT_SECRET = "helloworld"
 
