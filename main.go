@@ -89,10 +89,10 @@ func decodeToken(token string, secret string) (*Token, error) {
 type User struct {
 	Id        Id      `json:"id"`
 	Username  string  `json:"username"`
-	Firstname *string `json:"firstname"`
-	Patronym  *string `json:"patronym"`
-	Surname   *string `json:"surname"`
-	Rt        *string `json:"rt"`
+	Firstname *string `json:"firstname,omitempty"`
+	Patronym  *string `json:"patronym,omitempty"`
+	Surname   *string `json:"surname,omitempty"`
+	Rt        *string `json:"rt,omitempty"`
 }
 
 func createUser(
