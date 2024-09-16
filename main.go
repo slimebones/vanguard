@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
 	_ "github.com/lib/pq"
@@ -415,6 +416,7 @@ func newServer(args NewServerArgs) *gin.Engine {
 	setupDb(args.dbDriver, args.dbUrl)
 	server := gin.New()
 	server.Use(gin.Recovery())
+	server.Use(cors.Default())
 
 	server.POST("/rpc/login", RpcLogin)
 	server.POST("/rpc/logout", RpcLogout)
