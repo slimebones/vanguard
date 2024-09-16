@@ -216,7 +216,7 @@ func TestCurrentOk(t *testing.T) {
 
 	recorder.Body.Reset()
 
-	user.Rt = rt
+	user.Rt = &rt
 	rpcCompare("current", Current{Rt: rt}, server, recorder, user)
 }
 

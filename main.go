@@ -87,12 +87,12 @@ func decodeToken(token string, secret string) (*Token, error) {
 }
 
 type User struct {
-	Id        Id     `json:"id"`
-	Username  string `json:"username"`
-	Firstname string `json:"firstname"`
-	Patronym  string `json:"patronym"`
-	Surname   string `json:"surname"`
-	Rt        string `json:"rt"`
+	Id        Id      `json:"id"`
+	Username  string  `json:"username"`
+	Firstname *string `json:"firstname"`
+	Patronym  *string `json:"patronym"`
+	Surname   *string `json:"surname"`
+	Rt        *string `json:"rt"`
 }
 
 func createUser(
@@ -132,10 +132,10 @@ func createUser(
 	return User{
 		Id:        id,
 		Username:  username,
-		Firstname: firstname,
-		Patronym:  patronym,
-		Surname:   surname,
-		Rt:        "",
+		Firstname: &firstname,
+		Patronym:  &patronym,
+		Surname:   &surname,
+		Rt:        nil,
 	}
 }
 
@@ -284,7 +284,7 @@ func F(s string, args ...string) string {
 func getUsers(gq GetQuery) ([]User, error) {
 	// Extreme levels of sql injection danger are in the air. But we're ok for
 	// now.
-	q := `SELECT id, username, coalesce(firstname, ''), coalesce(patronym, ''), coalesce(surname, ''), coalesce(rt, '') FROM appuser WHERE `
+	q := `SELECT id, username, firstname, patronym, surname, rt FROM appuser WHERE `
 	var qArgs []any
 	for k, v := range gq {
 		if !strings.HasSuffix(q, "WHERE ") {
