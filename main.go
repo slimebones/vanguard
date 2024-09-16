@@ -23,8 +23,9 @@ var dbDriver string
 
 const DEFAULT_DB_DRIVER = "postgres"
 
-// const DEFAULT_DB_URL = "postgres://vanguard:vanguard@localhost:9005/vanguard?sslmode=disable"
-const DEFAULT_DB_URL = "postgres://vanguard:vanguard@psql:5432/vanguard?sslmode=disable"
+const DEFAULT_DB_URL = "postgres://vanguard:vanguard@localhost:9005/vanguard?sslmode=disable"
+
+// const DEFAULT_DB_URL = "postgres://vanguard:vanguard@psql:5432/vanguard?sslmode=disable"
 const RT_SECRET = "weloveauth"
 const AT_SECRET = "helloworld"
 
@@ -282,7 +283,7 @@ func F(s string, args ...string) string {
 func getUsers(gq GetQuery) ([]User, error) {
 	// Extreme levels of sql injection danger are in the air. But we're ok for
 	// now.
-	q := `SELECT id, username, firstname, patronym, surname, ifnull(rt, "") FROM appuser WHERE `
+	q := `SELECT id, username, coalesce(firstname, ''), coalesce(patronym, ''), coalesce(surname, ''), coalesce(rt, '') FROM appuser WHERE `
 	var qArgs []any
 	for k, v := range gq {
 		if !strings.HasSuffix(q, "WHERE ") {
@@ -336,6 +337,7 @@ func getUsers(gq GetQuery) ([]User, error) {
 		q += k + ` = $` + argNumStr
 	}
 	q += ";"
+	Print(q)
 	rows, err := db.Query(q, qArgs...)
 	Unwrap(err)
 	defer rows.Close()

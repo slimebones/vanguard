@@ -12,5 +12,8 @@ check: lint test
 run:
     go run .
 
+docker_build:
+    docker-compose up -d --build --remove-orphans
+
 migration *t:
 	@ dbmate -s "migrations/psql_schema.sql" -d "migrations/psql" {{t}}

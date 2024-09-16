@@ -139,7 +139,7 @@ func TestLogoutOk(t *testing.T) {
 
 	rpc("logout", Logout{Rt: rt}, server, recorder)
 	err = db.QueryRow(
-		`SELECT ifnull(rt, "") FROM appuser WHERE username = 'hello'`,
+		`SELECT coalesce(rt, "") FROM appuser WHERE username = 'hello'`,
 	).Scan(&inDbRt)
 	Unwrap(err)
 	Assert(inDbRt == "")
