@@ -99,7 +99,6 @@ func TestLoginOk(t *testing.T) {
 
 	rpc("login", data, server, recorder)
 	rt := recorder.Body.String()
-	rt = strings.ReplaceAll(rt, `"`, ``)
 	token, err := decodeToken(rt, RT_SECRET)
 	Unwrap(err)
 	Assert(token.Created <= utc())
@@ -124,7 +123,6 @@ func TestLogoutOk(t *testing.T) {
 	rpc("login", data, server, recorder)
 
 	rt := recorder.Body.String()
-	rt = strings.ReplaceAll(rt, `"`, ``)
 	token, err := decodeToken(rt, RT_SECRET)
 	Unwrap(err)
 	Assert(token.Created <= utc())
@@ -204,7 +202,6 @@ func TestCurrentOk(t *testing.T) {
 
 	rpc("login", data, server, recorder)
 	rt := recorder.Body.String()
-	rt = strings.ReplaceAll(rt, `"`, ``)
 	token, err := decodeToken(rt, RT_SECRET)
 	Unwrap(err)
 	Assert(token.Created <= utc())
@@ -234,7 +231,6 @@ func TestAccessOk(t *testing.T) {
 
 	rpc("login", data, server, recorder)
 	rt := recorder.Body.String()
-	rt = strings.ReplaceAll(rt, `"`, ``)
 	token, err := decodeToken(rt, RT_SECRET)
 	Unwrap(err)
 	Assert(token.Created <= utc())
@@ -250,7 +246,6 @@ func TestAccessOk(t *testing.T) {
 
 	rpc("access", Access{Rt: rt}, server, recorder)
 	at := recorder.Body.String()
-	at = strings.ReplaceAll(at, `"`, ``)
 	token, err = decodeToken(at, AT_SECRET)
 	Unwrap(err)
 	Assert(token.Created <= utc())

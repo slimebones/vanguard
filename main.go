@@ -24,9 +24,9 @@ var dbDriver string
 
 const DEFAULT_DB_DRIVER = "postgres"
 
-// const DEFAULT_DB_URL = "postgres://vanguard:vanguard@localhost:9005/vanguard?sslmode=disable"
+const DEFAULT_DB_URL = "postgres://vanguard:vanguard@localhost:9005/vanguard?sslmode=disable"
 
-const DEFAULT_DB_URL = "postgres://vanguard:vanguard@psql:5432/vanguard?sslmode=disable"
+// const DEFAULT_DB_URL = "postgres://vanguard:vanguard@psql:5432/vanguard?sslmode=disable"
 const RT_SECRET = "weloveauth"
 const AT_SECRET = "helloworld"
 
@@ -181,14 +181,14 @@ func RpcLogin(c *gin.Context) {
 		`
 			UPDATE appuser
 			SET rt = $1
-			WHERE username = $2
+			WHERE id = $2
 		`,
 		rt,
-		data.Username,
+		id,
 	)
 	Unwrap(err)
 
-	c.JSON(200, rt)
+	c.String(200, rt)
 }
 
 type Logout struct {
@@ -246,7 +246,7 @@ func RpcAccess(c *gin.Context) {
 	at, err := encodeToken(AT_SECRET, user.Id)
 	Unwrap(err)
 
-	c.JSON(200, at)
+	c.String(200, at)
 }
 
 func RpcReg(c *gin.Context) {
@@ -338,7 +338,6 @@ func getUsers(gq GetQuery) ([]User, error) {
 		q += k + ` = $` + argNumStr
 	}
 	q += ";"
-	Print(q)
 	rows, err := db.Query(q, qArgs...)
 	Unwrap(err)
 	defer rows.Close()
